@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Arara: Motor 1.5 (Estável)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-mono p-6 min-h-screen flex flex-col items-center justify-center">
+
+    <div class="w-full max-w-xl bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-400 flex items-center gap-2">
+                🦜 Protocolo Arara
+            </h1>
+            <span class="px-2 py-1 bg-green-900 text-green-200 text-xs rounded border border-green-700">Motor 1.5 Flash</span>
+        </div>
+
+        <div id="terminal" class="bg-black p-4 rounded-lg h-48 overflow-y-auto text-xs mb-6 border border-gray-600 font-mono leading-relaxed text-gray-300 shadow-inner">
+            > Sistema de diagnóstico pronto.<br>
+            > Chave carregada: ...KVzfYM<br>
+            > Modelo alvo: gemini-1.5-flash (Estável)<br>
+            > Aguardando...
+        </div>
+
+        <button onclick="perguntarArara()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition shadow-lg transform active:scale-95">
+            DISPARAR TESTE DE CONEXÃO
+        </button>
+
+        <div id="resultado-container" class="mt-6 hidden p-4 border border-green-500 bg-green-900/20 rounded-xl transition-all duration-500">
+            <h3 class="text-xs uppercase font-bold text-green-400 mb-1">Resposta Recebida:</h3>
+            <p id="resposta-texto" class="text-lg text-white font-sans font-medium"></p>
+        </div>
+    </div>
+
+    <script>
+        // ✅ CORREÇÃO: Definição das constantes conforme solicitado
+        const API_KEY = "AIzaSyATxQsZ3yT-cC4q02sgdM-x4h6TMKVzfYM";
+        const MODEL_NAME = "gemini-1.5-flash"; // ✅ Adicionado para evitar ReferenceError
+
+        function log(msg, tipo='info') {
+            const term = document.getElementById('terminal');
+            let color = 'text-gray-300';
+            if(tipo === 'erro') color = 'text-red-400 font-bold';
+            if(tipo === 'sucesso') color = 'text-green-400 font-bold';
+            if(tipo === 'aviso') color = 'text-yellow-400';
+
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            term.innerHTML += `<div class="${color} border-b border-gray-800 pb-1 mb-1">[${time}] ${msg}</div>`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        async function perguntarArara() {
+            const btn = document.getElementById('btn');
+            const respDiv = document.getElementById('resultado-container');
+            const respTxt = document.getElementById('resposta-texto');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerText = "Conectando ao Satélite...";
+            respDiv.classList.add('hidden');
+
+            log(`Iniciando Handshake com ${MODEL_NAME}...`, 'aviso');
+
+            // ✅ CORREÇÃO: Usando MODEL_NAME e API_KEY corretamente na URL
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+
+            const data = {
+                contents: [{
+                    parts: [{ text: "Responda muito curto (apenas o ano): Em que ano a Arara Azul de Spix foi extinta na natureza?" }]
+                }]
+            };
+
+            try {
+                log(`Enviando requisição...`);
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                log(`Status HTTP: ${response.status}`);
+
+                const json = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = json.error?.message || "Erro desconhecido";
+
+                    if(errorMsg.includes("429")) {
+                        log("⛔ COTA EXCEDIDA (429).", 'erro');
+                        alert("PAUSA: O Google pediu para esperar. Tente em 1 minuto.");
+                    } else {
+                        log(`❌ ERRO: ${errorMsg}`, 'erro');
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                // SUCESSO
+                if (json.candidates && json.candidates[0].content.parts[0].text) {
+                    const textoFinal = json.candidates[0].content.parts[0].text;
+                    log("✅ PACOTE RECEBIDO! SUCESSO TOTAL.", 'sucesso');
+
+                    respTxt.innerText = textoFinal;
+                    respDiv.classList.remove('hidden');
+
+                    btn.innerText = "Teste Realizado com Sucesso";
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                    btn.classList.add('bg-green-600', 'hover:bg-green-500');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    throw new Error("Resposta vazia da API.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                log(`Falha: ${error.message}`, 'erro');
+                btn.innerText = "Tentar Novamente";
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>

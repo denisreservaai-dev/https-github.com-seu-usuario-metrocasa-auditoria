@@ -32,95 +32,10 @@
         </div>
     </div>
 
-    <script>
-        // ✅ CORREÇÃO: Definição das constantes conforme solicitado
-        // ⚠️ IMPORTANTE: Sua chave anterior foi revogada. Substitua abaixo por uma nova chave válida.
-        const API_KEY = "YOUR_API_KEY_HERE";
-        const MODEL_NAME = "gemini-flash-latest"; // ✅ Atualizado para versão compatível (Gemini 2.5 Flash Preview)
-
-        function log(msg, tipo='info') {
-            const term = document.getElementById('terminal');
-            let color = 'text-gray-300';
-            if(tipo === 'erro') color = 'text-red-400 font-bold';
-            if(tipo === 'sucesso') color = 'text-green-400 font-bold';
-            if(tipo === 'aviso') color = 'text-yellow-400';
-
-            const time = new Date().toLocaleTimeString().split(' ')[0];
-            term.innerHTML += `<div class="${color} border-b border-gray-800 pb-1 mb-1">[${time}] ${msg}</div>`;
-            term.scrollTop = term.scrollHeight;
-        }
-
-        async function perguntarArara() {
-            const btn = document.getElementById('btn');
-            const respDiv = document.getElementById('resultado-container');
-            const respTxt = document.getElementById('resposta-texto');
-
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            btn.innerText = "Conectando ao Satélite...";
-            respDiv.classList.add('hidden');
-
-            log(`Iniciando Handshake com ${MODEL_NAME}...`, 'aviso');
-
-            // ✅ CORREÇÃO: Usando MODEL_NAME e API_KEY corretamente na URL
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-
-            const data = {
-                contents: [{
-                    parts: [{ text: "Responda muito curto (apenas o ano): Em que ano a Arara Azul de Spix foi extinta na natureza?" }]
-                }]
-            };
-
-            try {
-                log(`Enviando requisição...`);
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                log(`Status HTTP: ${response.status}`);
-
-                const json = await response.json();
-
-                if (!response.ok) {
-                    const errorMsg = json.error?.message || "Erro desconhecido";
-
-                    if(errorMsg.includes("429")) {
-                        log("⛔ COTA EXCEDIDA (429).", 'erro');
-                        alert("PAUSA: O Google pediu para esperar. Tente em 1 minuto.");
-                    } else {
-                        log(`❌ ERRO: ${errorMsg}`, 'erro');
-                    }
-                    throw new Error(errorMsg);
-                }
-
-                // SUCESSO
-                if (json.candidates && json.candidates[0].content.parts[0].text) {
-                    const textoFinal = json.candidates[0].content.parts[0].text;
-                    log("✅ PACOTE RECEBIDO! SUCESSO TOTAL.", 'sucesso');
-
-                    respTxt.innerText = textoFinal;
-                    respDiv.classList.remove('hidden');
-
-                    btn.innerText = "Teste Realizado com Sucesso";
-                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
-                    btn.classList.add('bg-green-600', 'hover:bg-green-500');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                } else {
-                    throw new Error("Resposta vazia da API.");
-                }
-
-            } catch (error) {
-                console.error(error);
-                log(`Falha: ${error.message}`, 'erro');
-                btn.innerText = "Tentar Novamente";
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-    </script>
+    <!-- Scripts organizados em camadas -->
+    <script src="js/config/settings.js"></script>
+    <script src="js/utils/logger.js"></script>
+    <script src="js/services/geminiService.js"></script>
+    <script src="js/controllers/araraController.js"></script>
 </body>
 </html>
